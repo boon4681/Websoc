@@ -5,8 +5,8 @@ Minecraft Plugin that provide socket to Allow you to send command directly to Se
 
 ```yml
 Authorization: [Random-UUID]
-Port: 3000
-Timeout: 1500
+Port: 3000 # Server Socket Port
+Timeout: 1500 # Server Connection Timeout
 ```
 
 <h4>Node.js client example</h4>
