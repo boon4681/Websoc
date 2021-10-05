@@ -9,7 +9,6 @@ import org.apache.logging.log4j.message.Message;
 
 public class log implements Filter {
     private sock sock;
-
     public log(sock sock){
         this.sock = sock;
     }
@@ -94,7 +93,6 @@ public class log implements Filter {
         this.sock.console(event.getMessage().getFormattedMessage().replaceAll("\u001b"," "));
         return null;
     }
-
     @Override
     public State getState() {
         return null;

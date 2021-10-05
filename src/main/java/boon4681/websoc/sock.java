@@ -3,83 +3,60 @@ package boon4681.websoc;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.ConsoleCommandSender;
+import org.java_websocket.WebSocket;
+import org.java_websocket.handshake.ClientHandshake;
+import org.java_websocket.server.WebSocketServer;
 
 import java.io.*;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class sock {
-    ServerSocket serv;
-    Thread cons;
+public class sock extends WebSocketServer {
     String consoles;
-    private void runThread(){
-        if(cons!=null)cons.stop();
-        cons = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                listen();
-            }
-        });
-        cons.start();
+    public void console(String a){
+        this.consoles = a;
     }
-    public void init(){
-        try {
-            int port = Integer.parseInt(core.config.getData().get("Port").toString());
-            serv = new ServerSocket(port);
-            runThread();
-            core.logger.sendMessage(Bstring.merger(ChatColor.GREEN,"[Websoc] Socket is Ready"));
-        } catch (IOException e) {
-            core.logger.sendMessage(Bstring.merger(ChatColor.RED,"[Websoc] Error ", Bstring.make_error(e)));
-            e.printStackTrace();
-        }
+    public sock(InetSocketAddress address){
+        super(address);
+        setReuseAddr(true);
     }
     private class response{
-        private PrintWriter out;
-        response(PrintWriter out){
+        private WebSocket out;
+        response(WebSocket out){
             this.out = out;
         }
         public void send(String a){
             core.logger.sendMessage(a);
-            out.print(a);
-            out.flush();
+            out.send(a);
         }
         public void send(ChatColor color,String a){
             core.logger.sendMessage(Bstring.merger(color,a));
-            out.print(a);
-            out.flush();
+            out.send(a);
         }
     }
-    public void console(String a){
-        this.consoles = a;
+    @Override
+    public void onOpen(WebSocket conn, ClientHandshake clientHandshake) {
+        conn.send("Websoc Welcome!");
     }
-    private void receive() throws Exception{
-        Socket connection = serv.accept();
-        Thread timeout;
-        BufferedReader inFromClient = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-        PrintWriter outToClient = new PrintWriter(connection.getOutputStream());
-        timeout = new Thread(() -> {
-            try{
-                Thread.sleep(Integer.parseInt(core.config.getData().get("Timeout").toString()));
-                connection.close();
-                inFromClient.close();
-                outToClient.close();
-            }catch (Exception e){
-                core.logger.sendMessage(Bstring.merger(ChatColor.RED,"[Websoc] Thread Error ", Bstring.make_error(e)));
-            }
-            Thread.currentThread().stop();
-        });
-        timeout.start();
-        response res = new response(outToClient);
-        String client_in = inFromClient.lines().collect(Collectors.joining("\r\n"));
-        Matcher match = Pattern.compile("Authorization: (.*)").matcher(client_in);
-        String ip = (((InetSocketAddress) connection.getRemoteSocketAddress()).getAddress()).toString().replace("/","");
+
+    @Override
+    public void onClose(WebSocket conn, int i, String s, boolean b) {
+
+    }
+
+    @Override
+    public void onMessage(WebSocket conn, String s) {
+        response res = new response(conn);
+        String ip = (((InetSocketAddress) conn.getRemoteSocketAddress()).getAddress()).toString().replace("/","");
+        Matcher match = Pattern.compile("Authorization: (.*)").matcher(s);
         if(match.find()){
             if(match.group(1).equals(core.config.getData().get("Authorization"))){
-                Matcher command = Pattern.compile("Command: (.*)").matcher(client_in);
+                Matcher command = Pattern.compile("Command: (.*)").matcher(s);
                 if(command.find()){
                     String c = command.group(1);
                     ConsoleCommandSender sender = Bukkit.getServer().getConsoleSender();
@@ -93,32 +70,22 @@ public class sock {
                         core.logger.sendMessage(Bstring.merger(ChatColor.RED,"[Websoc] ",ip," Error Command Execution -> ",c,"\n", Bstring.make_error(e)));
                         res.send(ChatColor.RED,Bstring.merger("[Websoc] ","Error Command Execution -> ",c));
                     }
-                    outToClient.flush();
                 }else{
-                    res.send(ChatColor.RED,Bstring.merger("[Websoc] ",connection.getInetAddress(),"Command not Found"));
+                    res.send(ChatColor.RED,Bstring.merger("[Websoc] ",ip," Command not Found"));
                 }
-            }else res.send(ChatColor.RED,Bstring.merger("[Websoc] ",connection.getInetAddress(),"Authorization Error"));
+            }else res.send(ChatColor.RED,Bstring.merger("[Websoc] ",ip," Authorization Error"));
         }else{
-            res.send(ChatColor.RED,Bstring.merger("[Websoc] ",connection.getInetAddress(),"Authorization Error"));
-        }
-        connection.close();
-        inFromClient.close();
-        outToClient.close();
-    }
-    private void listen() {
-        try{
-            while (true){
-                receive();
-            }
-        }catch (Exception e){
-            core.logger.sendMessage(Bstring.merger(ChatColor.RED,"[Websoc] Thread Error ", Bstring.make_error(e)));
+            res.send(ChatColor.RED,Bstring.merger("[Websoc] ",ip," Authorization Error"));
         }
     }
-    public void stop() throws IOException {
-        if(serv!=null){
-            cons.stop();
-            serv.close();
-            core.logger.sendMessage(Bstring.merger(ChatColor.GOLD,"[Websoc] Socket closed"));
-        }
+
+    @Override
+    public void onError(WebSocket conn, Exception e) {
+
+    }
+
+    @Override
+    public void onStart() {
+        core.logger.sendMessage(Bstring.merger(ChatColor.GREEN,"[Websoc] Socket is Ready"));
     }
 }

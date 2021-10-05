@@ -7,12 +7,14 @@ import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.IOException;
+import java.net.InetSocketAddress;
 
 public class core extends JavaPlugin {
     public static ConsoleCommandSender logger;
     public static JavaPlugin This;
-    public sock serv = new sock();
+    public static sock serv;
     public static Bfile config;
+    private Thread serverRun;
     @Override
     public void onEnable() {
         This = this;
@@ -22,12 +24,15 @@ public class core extends JavaPlugin {
             Config configManager = new Config(config);
             configManager.makeExists();
             config.load();
-            try {
-                serv.stop();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            serv.init();
+            serverRun = null;
+            serv = new sock(new InetSocketAddress("0.0.0.0", 3515));
+            serverRun = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    serv.run();
+                }
+            });
+            serverRun.start();
             Filter f = new log(serv);
             ((org.apache.logging.log4j.core.Logger) LogManager.getRootLogger()).addFilter(f);
         }
@@ -37,7 +42,8 @@ public class core extends JavaPlugin {
     public void onDisable() {
         try {
             serv.stop();
-        } catch (IOException e) {
+            serverRun = null;
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
