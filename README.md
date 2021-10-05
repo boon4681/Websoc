@@ -9,7 +9,7 @@ Port: 3000 # Server Socket Port
 Timeout: 1500 # Server Connection Timeout
 ```
 
-<h4>Node.js client example</h4>
+<!-- <h4>Node.js client example</h4>
 
 ```js
 var net = require('net'), Socket = net.Socket;
@@ -30,3 +30,4 @@ socket.on('data', function (a) {
 })
 socket.connect(3000, "localhost");
 ```
+ -->
