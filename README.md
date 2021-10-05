@@ -21,7 +21,7 @@ socket.on('connect', function () {
     socket.end()
 });
 socket.setTimeout(5000);
-socket.on('timeout', function () { status = 'closed'; socket.destroy(); });
+socket.on('timeout', function () { socket.destroy(); });
 socket.on('error', function (exception) { });
 socket.on('close', function (exception) { });
 socket.on('data', function (a) {
